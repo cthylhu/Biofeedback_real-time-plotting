@@ -1,0 +1,18 @@
+10-52-16
+45-43 -1 packs lost this time, -1 packs lost in all
+10-52-22
+45-43 -1 packs lost this time, -2 packs lost in all
+10-52-26
+45-43 -1 packs lost this time, -3 packs lost in all
+10-52-28
+45-43 -1 packs lost this time, -4 packs lost in all
+10-52-32
+45-43 -1 packs lost this time, -5 packs lost in all
+10-52-40
+45-43 -1 packs lost this time, -6 packs lost in all
+10-52-43
+45-43 -1 packs lost this time, -7 packs lost in all
+10-52-45
+45-43 -1 packs lost this time, -8 packs lost in all
+10-52-50
+45-43 -1 packs lost this time, -9 packs lost in all
