@@ -1,0 +1,241 @@
+#include "stdafx.h"
+#include "string.h"
+#include "DataDecode.h"
+//#include <iostream>
+#include <Windows.h>
+/*GSR*/
+float GSR_voltage = 0;
+float GSR_conductance = 0;
+float GSR_resistance = 0; 
+
+/*Hr Calcuation*/
+
+//peak Detection HR
+  double peakAG = 0;
+  double sample = 0;
+  double _attack = 0.9875;
+  double _decay = 0.992;
+  double gain;
+  double sampleAG;
+  double lower_bound = 0.9975;
+  double upper_bound = 0.99;
+  unsigned long currentMillis,previousMillis;
+  int near_peak = 0;
+  long Interval = 0;
+//peak Detection Breathing
+  double peakAG1 = 0;
+  double sample1 = 0;
+  double _attack1 = 0.9875;
+  double _decay1 = 0.992;
+  double gain1;
+  double sampleAG1;
+  double lower_bound1 = 0.9975;
+  double upper_bound1 = 0.99;
+  unsigned long currentMillis1,previousMillis1;
+  int near_peak1 = 0;
+  long Interval1 = 0;
+// HR 
+  int HRBeatCounter = 0;
+  int HrBeatCN;
+  double timeSum, HrBeat, HrBeatBuffer, HrBeatBufferSum;
+  double timeBuffer [10];// = new double[11];
+// Breatthing
+  int HRBeatCounter1 = 0;
+  int HrBeatCN1;
+  double timeSum1, HrBeat1, HrBeatBuffer1, HrBeatBufferSum1;
+  double timeBuffer1 [3];// = new double[11];
+
+double DataDecode( unsigned int *p_data, int len, const char *type )
+{
+	double ftmp = 0;
+	int int32tmp = 0;
+
+	ASSERT(len >= 0 && len <= 4);
+
+	for( int i = 0; i != len; i++ )
+	int32tmp = int32tmp | (p_data[i]  << (i*8));
+
+	if( int32tmp & (0X00000080 << (len - 1)*8) )
+	int32tmp |= 0XFFFFFF80 << (len - 1)*8;
+
+	if( strcmp( type, "AD8232" ) == 0 )
+	ftmp =  (double)Hr_Cal((double)int32tmp)*2/1000;
+
+	else if( strcmp( type, "ADXL345" ) == 0 )
+	ftmp =  Get_GSR(int32tmp)*2/1000;
+		else if( strcmp( type, "ADXL345_1" ) == 0 )
+			ftmp = (double)Hr_Cal1((double)int32tmp)*2/1000; 
+	return ftmp;
+}
+
+int Hr_Cal( double ECGsignal)
+{
+	float ECG = ECGsignal;
+	if (ECG > peakAG) 
+      peakAG = _attack * ECG;
+    else
+      peakAG = _decay * peakAG;
+    gain = _attack / peakAG;
+    sampleAG = gain * ECG;  
+    if (sampleAG >= lower_bound)
+		near_peak = 1;   
+    if ((near_peak == 1) && (sampleAG < upper_bound))
+    {
+       near_peak = 0;
+       currentMillis = GetTickCount();
+       //sw.Stop(); //stop the stopwatch
+       Interval = currentMillis - previousMillis;
+       //interval = sw.ElapsedMilliseconds;//get the time interval
+
+       if (Interval> 500)		//if the detected peak is very closed to the last peak (less than 300 milliseconds), we will ingore it.
+       {		
+           switch (HRBeatCounter)//get the time interval in timeBuffer
+             {						
+				 case 0:
+                 timeBuffer[0] = (double)(Interval) / 1000;
+				 break;
+				 case 1:
+                 timeBuffer[1] = (double)(Interval) / 1000;
+				 break;
+				 case 2:
+				 timeBuffer[2] = (double)(Interval) / 1000;
+                 break;
+                 case 3:
+                 timeBuffer[3] = (double)(Interval) / 1000;
+                 break;
+                 case 4:
+                 timeBuffer[4] = (double)(Interval) / 1000;
+                 break;
+                 case 5:
+                 timeBuffer[5] = (double)(Interval) / 1000;
+                 break;
+                 case 6:
+                 timeBuffer[6] = (double)(Interval) / 1000;
+                 break;
+                 case 7:
+                 timeBuffer[7] = (double)(Interval) / 1000;
+                 break;
+                 case 8:
+                 timeBuffer[8] = (double)(Interval) / 1000;
+                 break;
+                 case 9:
+                 timeBuffer[9] = (double)(Interval) / 1000;
+                 break;
+                 default:
+                 break;
+         }
+         if ((timeBuffer[9] != 0) && (timeBuffer[8] != 0) && (timeBuffer[7] != 0) && (timeBuffer[6] != 0) && (timeBuffer[5] != 0) && (timeBuffer[4] != 0) && (timeBuffer[3] != 0) && (timeBuffer[2] != 0) && (timeBuffer[1] != 0)&& (timeBuffer[0] != 0))
+           {
+               for (int i = 0; i < 10; i++)
+                  {
+                     timeSum = timeSum + timeBuffer[i]; // add timeBuffer[0] to timeBuffer[19]
+                  }
+               //get the heart rate beat
+               if (timeSum != 0)
+                 {
+                     HrBeatBuffer = 10 / timeSum * 60;
+					 HrBeatCN ++;// = HrBeat
+                 }
+			   HrBeatBufferSum = HrBeatBufferSum + HrBeatBuffer;
+               timeSum = 0;
+			}
+
+		 if (HrBeatCN == 1)
+		 {
+			HrBeat = HrBeatBufferSum/1;
+			HrBeatBufferSum = 0;
+			HrBeatCN = 0;
+		 
+		 }
+        previousMillis = currentMillis;
+     }
+       HRBeatCounter++;//if a peak detected the counter increases
+       if (HRBeatCounter == 10)
+       {
+           HRBeatCounter = 0;
+       } 
+   } 
+
+	return HrBeat;
+}
+
+
+int Hr_Cal1( double ECGsignal)
+
+{
+	float ECG1 = ECGsignal;
+	if (ECG1 > peakAG1) 
+		peakAG1 = _attack1 * ECG1;
+    else
+		peakAG1 = _decay1 * peakAG1;
+    
+	gain1 = _attack1 / peakAG1;
+    sampleAG1 = gain1 * ECG1;  
+    
+	if (sampleAG1 >= lower_bound1)
+		near_peak1 = 1;   
+    if ((near_peak1 == 1) && (sampleAG1 < upper_bound1))
+	{
+       near_peak1 = 0;
+       currentMillis1 = GetTickCount();
+       //sw.Stop(); //stop the stopwatch
+       Interval1 = currentMillis1 - previousMillis1;
+       //interval = sw.ElapsedMilliseconds;//get the time interval
+
+ 
+       if (Interval1> 500)//if the detected peak is very closed to the last peak (less than 300 milliseconds), we will ingore it.
+       {
+					
+           switch (HRBeatCounter1)//get the time interval in timeBuffer
+             {						
+                 case 1:
+                 timeBuffer1[0] = (double)(Interval1) / 1000;
+                 break;
+                 case 2:
+                 timeBuffer1[1] = (double)(Interval1) / 1000;
+                 break;
+                 case 3:
+                 timeBuffer1[2] = (double)(Interval1) / 1000;
+                 break;
+                 default:
+                 break;
+         }
+         if ( (timeBuffer1[2] != 0) && (timeBuffer1[1] != 0) && (timeBuffer1[0] != 0))
+           {
+               for (int i = 0; i < 3; i++)
+                  {
+                     timeSum1 = timeSum1 + timeBuffer1[i];
+                  }
+               //get the heart rate beat
+               if (timeSum1 != 0)
+                 {
+                     HrBeatBuffer1 = 3 / timeSum1 * 60;
+					 //HrBeatCN1 ++;// = HrBeat
+                 }
+			   HrBeat1 = HrBeatBuffer1;
+               timeSum1 = 0;
+			}
+        previousMillis1 = currentMillis1;
+		}
+       HRBeatCounter1++;//if a peak detected the counter increases
+       if (HRBeatCounter1 == 3)
+       {
+           HRBeatCounter1 = 0;
+       }
+	} 
+
+	return HrBeat1;
+}
+
+float Get_GSR (int GSR_value)
+{
+	GSR_voltage = GSR_value*5.0/1023;
+	GSR_conductance = 2*((GSR_voltage - 0.5) / 100000);// Use the formula to get the conductance, unit is S.
+	GSR_resistance = 1 / GSR_conductance; 
+
+	GSR_conductance = GSR_conductance*1000000;// Change the unit from S to mS, 
+	//normally the conductance for human is 0-100 mS. 
+	/*if (GSR_conductance > 0)*/ 	
+	return GSR_conductance;		//return the conductance only it is valid.
+	//else return 0;
+}
