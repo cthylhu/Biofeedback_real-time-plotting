@@ -21,3 +21,14 @@ accdata.txt columns:
 500 milliseconds - how long you wait to detect a peak
  - lower value - assume higher heart rate, but more noise
  - higher value - assume lower heart rate, less noise  
+
+ 
+ -------------
+ 
+ TeeChart5.ocx needs to be a registered activex component:
+ 
+ Run::
+
+   C:\Windows\System32\regsvr32.exe .\TeeChart5.ocx
+   
+ inside the MySerialPort/MySerialPort/ folder in the project.
